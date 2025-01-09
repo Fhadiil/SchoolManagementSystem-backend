@@ -2,20 +2,31 @@ from rest_framework import serializers
 from .models import Teacher, Subject
 from authentication.models import CustomUser
 from classes.models import Class
+import uuid
+
 
 class SubjectSerializer(serializers.ModelSerializer):
     class Meta:
         model = Subject
         fields = '__all__'
 
+
 class TeacherSerializer(serializers.ModelSerializer):
-    full_name = serializers.CharField(write_only=True)
+    full_name = serializers.CharField(required=True)
     subjects = serializers.PrimaryKeyRelatedField(queryset=Subject.objects.all(), many=True)
     assigned_classes = serializers.PrimaryKeyRelatedField(queryset=Class.objects.all(), many=True, required=False)
 
     class Meta:
         model = Teacher
-        fields = ['full_name', 'qualifications', 'contact', 'photo', 'subjects', 'assigned_classes']
+        fields = ['id', 'full_name', 'qualifications', 'contact', 'photo', 'subjects', 'assigned_classes']
+
+    def generate_unique_username(self, base_username):
+        """Generate a unique username by appending a suffix if needed."""
+        username = base_username
+        while CustomUser.objects.filter(username=username).exists():
+            unique_suffix = uuid.uuid4().hex[:6]  # Generate a random 6-character suffix
+            username = f"{base_username}_{unique_suffix}"
+        return username
 
     def create(self, validated_data):
         full_name = validated_data.pop('full_name')
@@ -28,10 +39,10 @@ class TeacherSerializer(serializers.ModelSerializer):
         except ValueError:
             raise serializers.ValidationError("Full name must include both first and last names.")
 
-        # Generate a unique username
+        # Generate a unique username based on contact
         contact = validated_data.get('contact', '')
-        unique_suffix = uuid.uuid4().hex[:6]
-        username = f"teacher_{contact}_{unique_suffix}"
+        base_username = f"teacher_{contact}_sms"
+        username = self.generate_unique_username(base_username)
 
         # Create the CustomUser instance
         user = CustomUser.objects.create(
