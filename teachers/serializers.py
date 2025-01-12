@@ -3,6 +3,7 @@ from .models import Teacher, Subject
 from authentication.models import CustomUser
 from classes.models import Class
 import uuid
+import secrets  # For generating secure random passwords
 
 
 class SubjectSerializer(serializers.ModelSerializer):
@@ -44,6 +45,9 @@ class TeacherSerializer(serializers.ModelSerializer):
         base_username = f"teacher_{contact}_sms"
         username = self.generate_unique_username(base_username)
 
+        # Generate a random secure password
+        random_password = secrets.token_urlsafe(12)  # Generates a 12-character secure password
+
         # Create the CustomUser instance
         user = CustomUser.objects.create(
             username=username,
@@ -51,6 +55,8 @@ class TeacherSerializer(serializers.ModelSerializer):
             last_name=last_name,
             role='teacher'
         )
+        user.set_password(random_password)
+        user.save()
 
         # Create the Teacher profile
         teacher = Teacher.objects.create(user=user, **validated_data)

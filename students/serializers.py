@@ -24,6 +24,9 @@ class StudentSerializer(serializers.ModelSerializer):
             last_name=last_name,
             role='student'
         )
+        default_password = "defaultpassword123"  
+        user.set_password(default_password)
+        user.save()
 
         student = Student.objects.create(user=user, **validated_data)
         return student
@@ -35,6 +38,6 @@ class StudentSerializer(serializers.ModelSerializer):
             name_parts = full_name.split(' ', 1)
             instance.user.first_name = name_parts[0]
             instance.user.last_name = name_parts[1] if len(name_parts) > 1 else ""
+            instance.user.save()
 
-        # Update the student attributes
         return super().update(instance, validated_data)
